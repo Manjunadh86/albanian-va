@@ -1,6 +1,7 @@
 import streamlit as st
 import openai
 import asyncio
+import hashlib
 import io
 import edge_tts
 from audio_recorder_streamlit import audio_recorder
@@ -69,7 +70,19 @@ def synthesize_speech(text: str, gender: str = "female") -> bytes:
                 chunks.append(chunk["data"])
         return b"".join(chunks)
 
-    return asyncio.run(_generate())
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        loop = None
+
+    if loop and loop.is_running():
+        new_loop = asyncio.new_event_loop()
+        try:
+            return new_loop.run_until_complete(_generate())
+        finally:
+            new_loop.close()
+    else:
+        return asyncio.run(_generate())
 
 
 # --- Page Config ---
@@ -266,8 +279,7 @@ with st.sidebar:
         st.session_state.history = []
         st.session_state.entries = []
         st.session_state.pending_audio = None
-        if "last_audio" in st.session_state:
-            del st.session_state.last_audio
+        st.session_state.last_audio_hash = None
         st.rerun()
 
     st.markdown(
@@ -318,8 +330,11 @@ else:
 
 # --- Process audio when recorded ---
 if audio_bytes:
-    if "last_audio" not in st.session_state or st.session_state.last_audio != audio_bytes:
-        st.session_state.last_audio = audio_bytes
+    audio_hash = hashlib.md5(audio_bytes).hexdigest()
+    is_new = st.session_state.get("last_audio_hash") != audio_hash
+
+    if is_new:
+        st.session_state.last_audio_hash = audio_hash
         client = get_openai_client()
 
         try:
@@ -343,8 +358,11 @@ if audio_bytes:
             st.session_state.entries.append({"role": "assistant", "text": response_text})
             st.session_state.history.append({"role": "assistant", "content": response_text})
 
-            with st.spinner("🔊 Po flas..."):
-                audio_response = synthesize_speech(response_text)
+            try:
+                with st.spinner("🔊 Po flas..."):
+                    audio_response = synthesize_speech(response_text)
+                st.session_state.pending_audio = audio_response
+            except Exception as e:
+                st.error(f"TTS failed: {e}")
 
-            st.session_state.pending_audio = audio_response
             st.rerun()
