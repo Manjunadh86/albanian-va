@@ -1,6 +1,8 @@
 import streamlit as st
 import openai
+import asyncio
 import io
+import edge_tts
 from audio_recorder_streamlit import audio_recorder
 
 SYSTEM_PROMPT = """Ti je Elira, një vajzë shqiptare nga Tirana. Flet si një shqiptare e vërtetë — natyrisht, lirshëm, jo si tekst i përkthyer nga anglishtja.
@@ -50,15 +52,24 @@ def generate_response(client: openai.OpenAI, user_message: str, history: list[di
     return completion.choices[0].message.content or "Më falni, nuk munda të përgjigjem."
 
 
-def synthesize_speech(client: openai.OpenAI, text: str, voice: str = "nova") -> bytes:
-    response = client.audio.speech.create(
-        model="tts-1",
-        voice=voice,
-        input=text,
-        response_format="opus",
-        speed=1.1,
-    )
-    return response.read()
+ALBANIAN_VOICES = {
+    "female": "sq-AL-AnilaNeural",
+    "male": "sq-AL-IlirNeural",
+}
+
+
+def synthesize_speech(text: str, gender: str = "female") -> bytes:
+    voice = ALBANIAN_VOICES.get(gender, ALBANIAN_VOICES["female"])
+
+    async def _generate():
+        comm = edge_tts.Communicate(text, voice, rate="+5%")
+        chunks = []
+        async for chunk in comm.stream():
+            if chunk["type"] == "audio":
+                chunks.append(chunk["data"])
+        return b"".join(chunks)
+
+    return asyncio.run(_generate())
 
 
 # --- Page Config ---
@@ -260,7 +271,7 @@ with st.sidebar:
         st.rerun()
 
     st.markdown(
-        '<br><small style="color:#3f3f46">Powered by OpenAI<br>Whisper · GPT-4o-mini · TTS</small>',
+        '<br><small style="color:#3f3f46">Powered by OpenAI Whisper<br>GPT-4o-mini · Albanian Neural TTS</small>',
         unsafe_allow_html=True,
     )
 
@@ -279,7 +290,7 @@ st.markdown("""
 if st.session_state.pending_audio is not None:
     audio_data = st.session_state.pending_audio
     st.session_state.pending_audio = None
-    st.audio(audio_data, format="audio/ogg", autoplay=True)
+    st.audio(audio_data, format="audio/mp3", autoplay=True)
 
 # --- Chat history ---
 if not st.session_state.entries:
@@ -333,7 +344,7 @@ if audio_bytes:
             st.session_state.history.append({"role": "assistant", "content": response_text})
 
             with st.spinner("🔊 Po flas..."):
-                audio_response = synthesize_speech(client, response_text)
+                audio_response = synthesize_speech(response_text)
 
             st.session_state.pending_audio = audio_response
             st.rerun()

@@ -9,11 +9,13 @@ Usage:
 import os
 import io
 import sys
+import asyncio
 
 try:
     import openai
+    import edge_tts
 except ImportError:
-    sys.exit("Run: pip install openai")
+    sys.exit("Run: pip install openai edge-tts")
 
 API_KEY = os.environ.get("OPENAI_API_KEY", "")
 
@@ -67,16 +69,18 @@ def test_llm(prompt: str) -> str:
 
 
 def test_tts(text: str) -> bytes:
-    print(f"\n[TEST TTS] Synthesizing: {text[:60]}...")
-    response = client.audio.speech.create(
-        model="tts-1-hd",
-        voice="nova",
-        input=text,
-        response_format="mp3",
-        speed=1.05,
-    )
-    audio = response.read()
-    print(f"[OK] Generated {len(audio):,} bytes of MP3 audio")
+    print(f"\n[TEST TTS] Synthesizing with native Albanian voice: {text[:60]}...")
+
+    async def _gen():
+        comm = edge_tts.Communicate(text, "sq-AL-AnilaNeural", rate="+5%")
+        chunks = []
+        async for chunk in comm.stream():
+            if chunk["type"] == "audio":
+                chunks.append(chunk["data"])
+        return b"".join(chunks)
+
+    audio = asyncio.run(_gen())
+    print(f"[OK] Generated {len(audio):,} bytes of MP3 (native sq-AL-AnilaNeural)")
     return audio
 
 
