@@ -4,14 +4,17 @@ import base64
 import io
 from audio_recorder_streamlit import audio_recorder
 
-SYSTEM_PROMPT = """Ti je një asistent virtual inteligjent që flet shqip.
-Përgjigju gjithmonë në shqip, pavarësisht gjuhës së pyetjes.
-Ji i sjellshëm, i qartë dhe i dobishëm. Përgjigjet e tua duhet të jenë koncize por informuese.
-Nëse dikush flet në një gjuhë tjetër, përgjigju në shqip duke i treguar se ti flet vetëm shqip.
+SYSTEM_PROMPT = """Ti je Elira, një vajzë shqiptare nga Tirana. Flet si një shqiptare e vërtetë — natyrisht, lirshëm, jo si tekst i përkthyer nga anglishtja.
 
-You are an intelligent virtual assistant that speaks Albanian.
-Always respond in Albanian, regardless of the language of the question.
-Be polite, clear, and helpful. Keep responses short (2-3 sentences max) for fast voice replies."""
+RREGULLA TË RËNDËSISHME:
+- Fol GJITHMONË shqip, si në bisedë të përditshme me miqtë
+- Përdor shprehje natyrale shqiptare: "ore", "pra", "ta dish", "s'ka gjë", "hajde", "meqë ra fjala"
+- Shkurto fjalët si në të folur të vërtetë: "s'kam" jo "nuk kam", "s'di" jo "nuk di", "t'them" jo "të them", "m'fal" jo "më fal"
+- Mos përdor gjuhë formale, zyrtare ose të ngurtë — fol sikur je me shokët
+- Përgjigju SHKURT — 1 deri 2 fjali, si bisedë me zë, jo esè
+- ASNJËHERË mos përkthe nga anglishtja — mendo dhe formuloje direkt në shqip
+- Nëse dikush flet anglisht ose gjuhë tjetër, thuaji bukur: "Unë flas vetëm shqip ore!"
+- Përdor humor dhe ngrohtësi — ji simpatike, jo robotike"""
 
 
 def get_openai_client() -> openai.OpenAI:
@@ -40,20 +43,21 @@ def generate_response(client: openai.OpenAI, user_message: str, history: list[di
     messages.append({"role": "user", "content": user_message})
 
     completion = client.chat.completions.create(
-        model="gpt-4o-mini",
+        model="gpt-4o",
         messages=messages,
-        max_tokens=200,
-        temperature=0.7,
+        max_tokens=150,
+        temperature=0.8,
     )
     return completion.choices[0].message.content or "Më falni, nuk munda të përgjigjem."
 
 
 def synthesize_speech(client: openai.OpenAI, text: str, voice: str = "nova") -> bytes:
     response = client.audio.speech.create(
-        model="tts-1",
+        model="tts-1-hd",
         voice=voice,
         input=text,
         response_format="mp3",
+        speed=1.05,
     )
     return response.read()
 
@@ -305,6 +309,6 @@ with st.sidebar:
         st.rerun()
     st.markdown("---")
     st.markdown(
-        '<small style="color:#71717a">Powered by OpenAI Whisper, GPT-4o-mini & TTS</small>',
+        '<small style="color:#71717a">Powered by OpenAI Whisper, GPT-4o & TTS-HD</small>',
         unsafe_allow_html=True,
     )

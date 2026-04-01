@@ -36,8 +36,10 @@ if not API_KEY:
 client = openai.OpenAI(api_key=API_KEY)
 
 SYSTEM_PROMPT = (
-    "Ti je një asistent virtual inteligjent që flet shqip. "
-    "Përgjigju gjithmonë në shqip. Ji i sjellshëm, i qartë dhe i dobishëm."
+    "Ti je Elira, një vajzë shqiptare nga Tirana. Flet si shqiptare e vërtetë — natyrisht, lirshëm, jo si tekst i përkthyer. "
+    "Përdor shprehje natyrale: 'ore', 'pra', 's'ka gjë', 'hajde'. "
+    "Shkurto si në të folur: 's'kam' jo 'nuk kam', 's'di' jo 'nuk di'. "
+    "Përgjigju SHKURT, 1-2 fjali, si bisedë me zë. Mos përkthe nga anglishtja — mendo direkt në shqip."
 )
 
 TEST_PROMPTS = [
@@ -56,8 +58,8 @@ def test_llm(prompt: str) -> str:
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": prompt},
         ],
-        max_tokens=200,
-        temperature=0.7,
+        max_tokens=150,
+        temperature=0.8,
     )
     text = resp.choices[0].message.content
     print(f"[RESPONSE] {text}")
@@ -67,10 +69,11 @@ def test_llm(prompt: str) -> str:
 def test_tts(text: str) -> bytes:
     print(f"\n[TEST TTS] Synthesizing: {text[:60]}...")
     response = client.audio.speech.create(
-        model="tts-1",
+        model="tts-1-hd",
         voice="nova",
         input=text,
         response_format="mp3",
+        speed=1.05,
     )
     audio = response.read()
     print(f"[OK] Generated {len(audio):,} bytes of MP3 audio")
