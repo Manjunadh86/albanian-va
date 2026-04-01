@@ -23,8 +23,9 @@ def get_openai_client() -> openai.OpenAI:
 
 
 def transcribe_audio(client: openai.OpenAI, audio_bytes: bytes) -> str:
-    audio_file = io.BytesIO(audio_bytes)
-    audio_file.name = "recording.wav"
+    if len(audio_bytes) < 1000:
+        return ""
+    audio_file = ("recording.wav", io.BytesIO(audio_bytes), "audio/wav")
     transcription = client.audio.transcriptions.create(
         model="whisper-1",
         file=audio_file,
@@ -186,8 +187,8 @@ audio_bytes = audio_recorder(
     recording_color="#ef4444",
     neutral_color="#52525b",
     icon_size="2x",
-    pause_threshold=2.0,
-    sample_rate=41000,
+    pause_threshold=2.5,
+    sample_rate=44100,
 )
 
 # --- Process audio when recorded ---
@@ -197,8 +198,12 @@ if audio_bytes:
 
         client = get_openai_client()
 
-        with st.spinner("Po dëgjoj... (Transcribing)"):
-            transcript = transcribe_audio(client, audio_bytes)
+        try:
+            with st.spinner("Po dëgjoj... (Transcribing)"):
+                transcript = transcribe_audio(client, audio_bytes)
+        except Exception as e:
+            st.error(f"Transcription failed: {e}")
+            transcript = ""
 
         if not transcript.strip():
             st.warning("Nuk munda ta kuptoj audion. Provoni përsëri.")
