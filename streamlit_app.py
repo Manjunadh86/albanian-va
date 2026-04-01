@@ -65,142 +65,155 @@ def synthesize_speech(client: openai.OpenAI, text: str, voice: str = "nova") -> 
 st.set_page_config(
     page_title="Asistenti Shqiptar",
     page_icon="🇦🇱",
-    layout="centered",
+    layout="wide",
 )
 
-# --- Custom CSS with animated mic ---
+# --- Custom CSS ---
 st.markdown("""
 <style>
     .stApp { background-color: #09090b; }
     [data-testid="stHeader"] { background-color: #09090b; }
-    [data-testid="stSidebar"] { background-color: #18181b; }
+    [data-testid="stSidebar"] {
+        background-color: #0f0f12;
+        border-right: 1px solid #1e1e24;
+    }
+    [data-testid="stSidebar"] [data-testid="stVerticalBlock"] {
+        padding-top: 0.5rem;
+    }
 
     .main-header {
         text-align: center;
-        padding: 1.2rem 0 0.8rem;
+        padding: 1rem 0 0.6rem;
     }
     .main-header h1 {
         color: #fafafa;
-        font-size: 1.5rem;
+        font-size: 1.4rem;
         font-weight: 700;
         margin: 0;
     }
     .main-header p {
         color: #71717a;
-        font-size: 0.75rem;
+        font-size: 0.72rem;
         margin: 0;
     }
     .al-badge {
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        width: 2.2rem;
-        height: 2.2rem;
+        width: 2rem;
+        height: 2rem;
         border-radius: 0.5rem;
         background: linear-gradient(135deg, #dc2626, #991b1b);
         color: white;
         font-weight: 700;
-        font-size: 0.85rem;
-        margin-bottom: 0.4rem;
+        font-size: 0.8rem;
+        margin-bottom: 0.3rem;
     }
 
     .chat-user {
         background: linear-gradient(135deg, #2563eb, #1d4ed8);
         color: white;
-        padding: 0.65rem 1rem;
+        padding: 0.6rem 0.9rem;
         border-radius: 1rem 1rem 0.25rem 1rem;
-        margin: 0.35rem 0;
-        font-size: 0.88rem;
-        max-width: 80%;
+        margin: 0.3rem 0;
+        font-size: 0.85rem;
+        max-width: 85%;
         margin-left: auto;
         text-align: right;
-        line-height: 1.45;
+        line-height: 1.4;
     }
     .chat-assistant {
         background: linear-gradient(135deg, #27272a, #303035);
         color: #f4f4f5;
-        padding: 0.65rem 1rem;
+        padding: 0.6rem 0.9rem;
         border-radius: 1rem 1rem 1rem 0.25rem;
-        margin: 0.35rem 0;
-        font-size: 0.88rem;
-        max-width: 80%;
-        line-height: 1.45;
+        margin: 0.3rem 0;
+        font-size: 0.85rem;
+        max-width: 85%;
+        line-height: 1.4;
     }
     .chat-label {
-        font-size: 0.58rem;
+        font-size: 0.55rem;
         text-transform: uppercase;
         letter-spacing: 0.1em;
-        opacity: 0.55;
-        margin-bottom: 0.2rem;
+        opacity: 0.5;
+        margin-bottom: 0.15rem;
     }
 
-    /* ---- Animated mic container ---- */
-    .mic-zone {
+    /* ---- Sidebar mic styles ---- */
+    .sidebar-mic-wrap {
         display: flex;
         flex-direction: column;
         align-items: center;
-        justify-content: center;
-        padding: 1.5rem 0 0.5rem;
-        gap: 0.5rem;
+        padding: 1rem 0;
     }
-    .mic-ring {
+    .mic-orb {
         position: relative;
+        width: 100px;
+        height: 100px;
         display: flex;
         align-items: center;
         justify-content: center;
+        margin-bottom: 0.8rem;
     }
-    .mic-ring::before, .mic-ring::after {
+    .mic-orb::before {
         content: '';
         position: absolute;
+        width: 100%;
+        height: 100%;
         border-radius: 50%;
-        border: 2px solid rgba(239, 68, 68, 0.25);
-        animation: mic-pulse 2s ease-in-out infinite;
+        background: radial-gradient(circle, rgba(239,68,68,0.12) 0%, transparent 70%);
+        animation: orb-breathe 2.5s ease-in-out infinite;
     }
-    .mic-ring::before {
-        width: 90px; height: 90px;
-        animation-delay: 0s;
+    .mic-orb::after {
+        content: '';
+        position: absolute;
+        width: 80%;
+        height: 80%;
+        border-radius: 50%;
+        border: 2px solid rgba(239,68,68,0.2);
+        animation: orb-ring 3s ease-in-out infinite;
     }
-    .mic-ring::after {
-        width: 110px; height: 110px;
-        animation-delay: 0.5s;
+    @keyframes orb-breathe {
+        0%, 100% { transform: scale(1); opacity: 0.6; }
+        50% { transform: scale(1.15); opacity: 0.3; }
+    }
+    @keyframes orb-ring {
+        0%, 100% { transform: scale(0.9); opacity: 0.4; }
+        50% { transform: scale(1.1); opacity: 0.1; }
     }
 
-    @keyframes mic-pulse {
-        0%   { transform: scale(0.95); opacity: 0.5; }
-        50%  { transform: scale(1.12); opacity: 0.15; }
-        100% { transform: scale(0.95); opacity: 0.5; }
-    }
-
-    .mic-label {
-        color: #a1a1aa;
-        font-size: 0.72rem;
+    .mic-status {
         text-align: center;
-        letter-spacing: 0.03em;
+        color: #a1a1aa;
+        font-size: 0.7rem;
+        letter-spacing: 0.04em;
+        margin-bottom: 0.3rem;
     }
-    .mic-sublabel {
+    .mic-hint {
+        text-align: center;
         color: #52525b;
-        font-size: 0.62rem;
+        font-size: 0.58rem;
     }
 
-    /* Keep recorder centered and always visible */
-    div[data-testid="stAudioRecorder"] {
+    [data-testid="stSidebar"] div[data-testid="stAudioRecorder"] {
         display: flex !important;
         justify-content: center !important;
-        visibility: visible !important;
     }
 
-    /* Style the audio player */
     audio { border-radius: 8px; }
-</style>
-""", unsafe_allow_html=True)
 
-# --- Header ---
-st.markdown("""
-<div class="main-header">
-    <div class="al-badge">AL</div>
-    <h1>Asistenti Shqiptar</h1>
-    <p>Albanian Voice Assistant</p>
-</div>
+    .empty-chat {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 40vh;
+        color: #3f3f46;
+        text-align: center;
+        font-size: 0.85rem;
+        line-height: 1.6;
+    }
+</style>
 """, unsafe_allow_html=True)
 
 # --- Session state ---
@@ -211,50 +224,86 @@ if "entries" not in st.session_state:
 if "pending_audio" not in st.session_state:
     st.session_state.pending_audio = None
 
-# --- Display chat history ---
-for entry in st.session_state.entries:
-    if entry["role"] == "user":
-        st.markdown(
-            f'<div class="chat-user"><div class="chat-label">Ti</div>{entry["text"]}</div>',
-            unsafe_allow_html=True,
-        )
-    else:
-        st.markdown(
-            f'<div class="chat-assistant"><div class="chat-label">Asistenti</div>{entry["text"]}</div>',
-            unsafe_allow_html=True,
-        )
+# ===========================
+# SIDEBAR — mic always here
+# ===========================
+with st.sidebar:
+    st.markdown("""
+    <div class="sidebar-mic-wrap">
+        <div class="mic-orb"></div>
+    </div>
+    """, unsafe_allow_html=True)
 
-# --- Play pending audio AFTER rerun so it doesn't get cut off ---
+    audio_bytes = audio_recorder(
+        text="",
+        recording_color="#ef4444",
+        neutral_color="#71717a",
+        icon_size="3x",
+        pause_threshold=2.0,
+        sample_rate=44100,
+        key="main_recorder",
+    )
+
+    st.markdown("""
+    <div class="mic-status">Shtyp dhe fol</div>
+    <div class="mic-hint">Press & speak</div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("---")
+
+    if st.button("🗑️  Pastro / Clear", use_container_width=True):
+        st.session_state.history = []
+        st.session_state.entries = []
+        st.session_state.pending_audio = None
+        if "last_audio" in st.session_state:
+            del st.session_state.last_audio
+        st.rerun()
+
+    st.markdown(
+        '<br><small style="color:#3f3f46">Powered by OpenAI<br>Whisper · GPT-4o-mini · TTS</small>',
+        unsafe_allow_html=True,
+    )
+
+# ===========================
+# MAIN AREA — header + chat
+# ===========================
+st.markdown("""
+<div class="main-header">
+    <div class="al-badge">AL</div>
+    <h1>Asistenti Shqiptar</h1>
+    <p>Albanian Voice Assistant</p>
+</div>
+""", unsafe_allow_html=True)
+
+# --- Play pending audio ---
 if st.session_state.pending_audio is not None:
     audio_data = st.session_state.pending_audio
     st.session_state.pending_audio = None
     st.audio(audio_data, format="audio/ogg", autoplay=True)
 
-st.divider()
-
-# --- Animated mic zone + recorder ---
-st.markdown("""
-<div class="mic-zone">
-    <div class="mic-ring"></div>
-</div>
-""", unsafe_allow_html=True)
-
-audio_bytes = audio_recorder(
-    text="",
-    recording_color="#ef4444",
-    neutral_color="#71717a",
-    icon_size="3x",
-    pause_threshold=2.0,
-    sample_rate=44100,
-    key="main_recorder",
-)
-
-st.markdown("""
-<div style="text-align:center; padding-top: 0.3rem;">
-    <div class="mic-label">Shtyp butonin e mikrofonit dhe fillo të flasësh</div>
-    <div class="mic-sublabel">Press the mic and start speaking</div>
-</div>
-""", unsafe_allow_html=True)
+# --- Chat history ---
+if not st.session_state.entries:
+    st.markdown("""
+    <div class="empty-chat">
+        <div>
+            <div style="font-size: 2rem; margin-bottom: 0.5rem;">🎙️</div>
+            Shtyp butonin në të majtë dhe fillo të flasësh shqip<br>
+            <span style="color:#2a2a2e; font-size: 0.75rem;">Press the mic on the left and start speaking Albanian</span>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+else:
+    for entry in st.session_state.entries:
+        if entry["role"] == "user":
+            st.markdown(
+                f'<div class="chat-user"><div class="chat-label">Ti</div>{entry["text"]}</div>',
+                unsafe_allow_html=True,
+            )
+        else:
+            st.markdown(
+                f'<div class="chat-assistant"><div class="chat-label">Asistenti</div>{entry["text"]}</div>',
+                unsafe_allow_html=True,
+            )
 
 # --- Process audio when recorded ---
 if audio_bytes:
@@ -288,19 +337,3 @@ if audio_bytes:
 
             st.session_state.pending_audio = audio_response
             st.rerun()
-
-# --- Sidebar ---
-with st.sidebar:
-    st.markdown("### Cilësimet / Settings")
-    if st.button("🗑️ Pastro bisedat / Clear chat", use_container_width=True):
-        st.session_state.history = []
-        st.session_state.entries = []
-        st.session_state.pending_audio = None
-        if "last_audio" in st.session_state:
-            del st.session_state.last_audio
-        st.rerun()
-    st.markdown("---")
-    st.markdown(
-        '<small style="color:#71717a">Powered by OpenAI Whisper, GPT-4o-mini & TTS</small>',
-        unsafe_allow_html=True,
-    )
