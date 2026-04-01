@@ -1,6 +1,5 @@
 import streamlit as st
 import openai
-import base64
 import io
 from audio_recorder_streamlit import audio_recorder
 
@@ -43,9 +42,9 @@ def generate_response(client: openai.OpenAI, user_message: str, history: list[di
     messages.append({"role": "user", "content": user_message})
 
     completion = client.chat.completions.create(
-        model="gpt-4o",
+        model="gpt-4o-mini",
         messages=messages,
-        max_tokens=150,
+        max_tokens=100,
         temperature=0.8,
     )
     return completion.choices[0].message.content or "Më falni, nuk munda të përgjigjem."
@@ -53,11 +52,11 @@ def generate_response(client: openai.OpenAI, user_message: str, history: list[di
 
 def synthesize_speech(client: openai.OpenAI, text: str, voice: str = "nova") -> bytes:
     response = client.audio.speech.create(
-        model="tts-1-hd",
+        model="tts-1",
         voice=voice,
         input=text,
-        response_format="mp3",
-        speed=1.05,
+        response_format="opus",
+        speed=1.1,
     )
     return response.read()
 
@@ -229,14 +228,7 @@ for entry in st.session_state.entries:
 if st.session_state.pending_audio is not None:
     audio_data = st.session_state.pending_audio
     st.session_state.pending_audio = None
-    b64 = base64.b64encode(audio_data).decode()
-    st.markdown(
-        f"""<audio autoplay controls style="display:none">
-            <source src="data:audio/mp3;base64,{b64}" type="audio/mpeg">
-        </audio>""",
-        unsafe_allow_html=True,
-    )
-    st.audio(audio_data, format="audio/mp3", autoplay=True)
+    st.audio(audio_data, format="audio/ogg", autoplay=True)
 
 st.divider()
 
@@ -309,6 +301,6 @@ with st.sidebar:
         st.rerun()
     st.markdown("---")
     st.markdown(
-        '<small style="color:#71717a">Powered by OpenAI Whisper, GPT-4o & TTS-HD</small>',
+        '<small style="color:#71717a">Powered by OpenAI Whisper, GPT-4o-mini & TTS</small>',
         unsafe_allow_html=True,
     )
