@@ -29,7 +29,6 @@ def transcribe_audio(client: openai.OpenAI, audio_bytes: bytes) -> str:
     transcription = client.audio.transcriptions.create(
         model="whisper-1",
         file=audio_file,
-        language="sq",
     )
     return transcription.text
 
